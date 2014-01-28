@@ -71,7 +71,9 @@ class Builder(object):
   def add_html_file(self, html_path):
     html_file = File(html_path)
     self.add_static_file(html_path)
-    self.add_static_files(html.extract_local_js(html_file))
+    html_dir = os.path.dirname(html_path)
+    js_paths = html.extract_local_js(html_file)
+    self.add_static_files(map(lambda p: os.path.join(html_dir, p), js_paths))
 
   def get_background_js(self):
     if 'app' in self.manifest:
@@ -82,4 +84,3 @@ class Builder(object):
   def build(self):
     return build(self.source_dir, self.build_path, self.manifest,
                  self.static_file_paths)
-      
