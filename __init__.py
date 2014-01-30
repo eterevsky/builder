@@ -17,6 +17,12 @@ def action(func):
   wrapped_func.__func = func
   return wrapped_func
 
+@action
+def copy(src_file, dest_path):
+  os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+  shutil.copy(src_file.path, dest_path)
+  return File(dest_path)
+
   
 class File(object):
   def __init__(self, path):
@@ -39,11 +45,8 @@ class File(object):
     with open(self.path, 'w') as f:
       return f.write(data)
 
-  @action
   def copy(self, dest_path):
-    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-    shutil.copy(self.path, dest_path)
-    return File(dest_path)
+    return copy(self, dest_path)
 
 
 def run(main_build, source_path=None):
