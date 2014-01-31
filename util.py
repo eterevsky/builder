@@ -115,6 +115,6 @@ def get_unused_filename(existing_files, filename):
       return new_name
 
 
-def get_sbuild_path_with_version(source_dir, base_build_path, name):
+def get_build_path_with_version(source_dir, base_build_path, name):
   version = get_version_from_git(source_dir / '.git')
   return os.path.join(base_build_path, name + '-' + version)
