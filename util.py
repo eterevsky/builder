@@ -32,7 +32,7 @@ def delete_unlisted_files(dir_path, files):
 _GIT_DESCRIBE_RE = re.compile(r'v?(\d+(?:\.\d+))(?:-(\d+)-g.*)?')
 
 @action
-def get_version_from_git(git_dir):
+def get_version_from_git(source_dir):
   """Guess the current version from git revision.
 
   If there are annotated tags in trunk of the form 'vX.Y' or 'X.Y', the version
@@ -43,15 +43,16 @@ def get_version_from_git(git_dir):
   try:
     describe_str = subprocess.check_output(
         ['git', 'describe'], universal_newlines=True, stderr=subprocess.STDOUT,
-        cwd=git_dir.path)
+        cwd=source_dir.path)
   except FileNotFoundError:
     return ''
   except subprocess.CalledProcessError:
     describe_str = None
 
   if describe_str is None or describe_str.find('fatal') == 0:
-    revision = check_output(['git', 'rev-list', 'HEAD', '--count'],
-                            universal_newlines=True, cwd=git_dir.path)
+    revision = subprocess.check_output(
+        ['git', 'rev-list', 'HEAD', '--count'], universal_newlines=True,
+        cwd=source_dir.path)
     return 'r' + revision
   else:
     match = _GIT_DESCRIBE_RE.match(describe_str)
@@ -61,6 +62,17 @@ def get_version_from_git(git_dir):
     else:
       return tag
 
+
+@action
+def get_git_branch(source_dir):
+  return subprocess.check_output(
+      ['git', 'rev-parse', '--abbrev-ref', 'HEAD'], universal_newlines=True,
+      cwd=source_dir.path).strip()
+
+@action
+def is_git_modified(source_dir):
+  return (subprocess.check_output(['git', 'diff']) or
+          subprocess.check_output(['git', 'diff', '--cached']))
 
 @action
 def create_archive(build_dir, format='zip', manifest=None):
@@ -115,6 +127,13 @@ def get_unused_filename(existing_files, filename):
       return new_name
 
 
-def get_build_path_with_version(source_dir, base_build_path, name):
-  version = get_version_from_git(source_dir / '.git')
-  return os.path.join(base_build_path, name + '-' + version)
+def get_build_path_with_version(source_dir, base_build_path, name, suffixes):
+  parts = [name]
+  branch = get_git_branch(source_dir)
+  if branch != 'master':
+    parts.append(branch)
+  parts.append(get_version_from_git(source_dir))
+  if is_git_modified(source_dir):
+    parts.append('mod')
+  parts.extend(suffixes)
+  return os.path.join(base_build_path, '-'.join(parts))
