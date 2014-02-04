@@ -127,7 +127,7 @@ def get_unused_filename(existing_files, filename):
       return new_name
 
 
-def get_build_path_with_version(source_dir, base_build_path, name, suffixes):
+def get_build_path_with_version(source_dir, base_build_path, name, suffixes=[]):
   parts = [name]
   branch = get_git_branch(source_dir)
   if branch != 'master':

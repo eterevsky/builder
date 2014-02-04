@@ -1,7 +1,8 @@
 import argparse
 import inspect
 import os
-import shutil
+
+from ._file import File
 
 def action(func):
   """Decorator for buider actions.
@@ -14,7 +15,8 @@ def action(func):
   interchangeable.
   """
   def wrapped_func(*args, **kargs):
-    print(func.__name__, str(args), kargs if len(kargs) else '')
+    print(func.__name__, ' '.join(map(str, args)),
+          str(kargs) if len(kargs) else '')
     return func(*args, **kargs)
   wrapped_func.__func = func
   return wrapped_func
@@ -26,33 +28,11 @@ def unwrap_function(func):
   except AttributeError:
     return func
 
-
-class File(object):
-  def __init__(self, path):
-    self.path = path
-
-  def __truediv__(self, subpath):
-    return File(os.path.join(self.path, subpath))
-
-  def __repr__(self):
-    return 'File(\'' + self.path + '\')'
-
-  def isdir(self):
-    return os.path.isdir(self.path)
-
-  def read(self):
-    with open(self.path) as f:
-      return f.read()
-
-  def write(self, data):
-    with open(self.path, 'w') as f:
-      return f.write(data)
-
-  @action
-  def copy(self, dest_path):
-    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-    shutil.copy(self.path, dest_path)
-    return File(dest_path)
+@action
+def copy_file(src, dest_path):
+  out = File(dest_path)
+  out.write(src.read())
+  return out
 
 
 def add_builder_arguments(arg_parser):

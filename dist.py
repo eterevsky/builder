@@ -23,18 +23,22 @@ class Builder(object):
   def __init__(self, source_dir, build_path):
     self.source_dir = source_dir
     self.build_path = build_path
-    self.static_file_paths = set()
     self.file_contents = {}
+    self.files_to_copy = {}
 
-  def copy_files(self, paths):
-    self.static_file_paths |= set(paths)
+  def copy_file(self, src, dest_path):
+    self.files_to_copy[dest_path] = src
 
-  def copy_file(self, path):
-    self.static_file_paths.add(path)
+  def copy_file_same_path(self, path):
+    self.copy_file(self.source_dir / path, path)
+
+  def copy_files_same_path(self, paths):
+    for path in paths:
+      self.copy_file_same_path(path)
 
   def write_file(self, file_path, data):
     self.file_contents[file_path] = data
 
   def build(self):
-    return build(self.source_dir, self.build_path, self.static_file_paths,
+    return build(self.source_dir, self.build_path, self.files_to_copy,
                  self.file_contents)
