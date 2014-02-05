@@ -4,10 +4,11 @@ from . import action, File
 from . import util
 
 @action
-def build(source_dir, build_path, static_file_paths, file_contents):
+def build(source_dir, build_path, files_to_copy, file_contents):
   build_files = []
-  build_files.extend(util.copy_files(source_dir, build_path,
-                                     static_file_paths))
+  for dest_path, src_file in files_to_copy.items():
+    full_path = os.path.join(build_path, dest_path)
+    build_files.append(util.copy_file(src_file, full_path))
 
   for file_path, data in file_contents.items():
     f = File(os.path.join(build_path, file_path))

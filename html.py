@@ -31,14 +31,21 @@ def extract_local_js(html_file):
   return paths
 
 
+# TODO: getpos() in HTMLParser is stupid. Should write a parser that copies
+# everything and changes scripts along the way.
 class _ScriptsReplacer(html.parser.HTMLParser):
-  def __init__(self, js_paths):
+  def __init__(self, js_paths, line_offsets):
     super(_ScriptsReplacer, self).__init__()
     self._js_paths = set(js_paths)
+    self._line_offsets = line_offsets
     self.first_pos = None
     self.script_attr = None
     self.other_pos = []
     self._inside_replaced_script = False
+
+  def str_pos(self):
+    line, char = self.getpos()
+    return self._line_offsets[line] + char
 
   def handle_starttag(self, tag, attrs):
     if tag != 'script':
@@ -47,10 +54,10 @@ class _ScriptsReplacer(html.parser.HTMLParser):
     attr_dict = dict(attrs)
     if 'src' in attr_dict and attr_dict['src'] in self._js_paths:
       if self.first_pos is None:
-        self.first_pos = self.getpos()
+        self.first_pos = self.str_pos()
         self.script_attr = attrs
       else:
-        self.other_pos.append((self.getpos(), None))
+        self.other_pos.append((self.str_pos(), None))
         self._inside_replaced_script = True
 
   def handle_endtag(self, tag):
@@ -61,7 +68,7 @@ class _ScriptsReplacer(html.parser.HTMLParser):
       assert len(self.other_pos) > 0
       start, finish = self.other_pos[-1]
       assert finish is None
-      self.other_pos[-1] = (start, self.getpos())
+      self.other_pos[-1] = (start, self.str_pos())
 
 
 def format_tag(tag, attr):
@@ -76,8 +83,12 @@ def replace_js(src, js_paths, new_js_path):
   First <script> tag with url from js_paths is replaced by new_js_path. Others
   are simply removed.
   """
-  replacer = _ScriptsReplacer(js_paths)
   data = src.read()
+  line_offsets = [0, 0]
+  for line in data.splitlines(True):
+    line_offsets.append(line_offsets[-1] + len(line))
+
+  replacer = _ScriptsReplacer(js_paths, line_offsets)
   replacer.feed(data)
   replacer.close()
 

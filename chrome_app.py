@@ -48,16 +48,19 @@ class Builder(object):
     if add_js:
       self.dist_builder.copy_files_same_path(self.get_background_js())
 
+  def set_version(self, version):
+    self.manifest['version'] = version
+
   def copy_file(self, src, dest_path):
     self.dist_builder.copy_file(src, dest_path)
 
   def add_static_files(self, paths):
     self.dist_builder.copy_files_same_path(paths)
 
-  def add_html_file(self, html_file, add_js=False):
-    self.dist_builder.copy_file_same_path(html_path)
+  def add_html_file(self, html_file, path, add_js=False):
+    self.dist_builder.copy_file(html_file, path)
     if add_js:
-      html_dir = os.path.dirname(html_path)
+      html_dir = os.path.dirname(path)
       relative_js_paths = html.extract_local_js(html_file)
       js_paths = map(lambda p: os.path.join(html_dir, p), relative_js_paths)
       self.dist_builder.copy_files_same_path(js_paths)

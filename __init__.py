@@ -28,13 +28,6 @@ def unwrap_function(func):
   except AttributeError:
     return func
 
-@action
-def copy_file(src, dest_path):
-  out = File(dest_path)
-  out.write(src.read())
-  return out
-
-
 def add_builder_arguments(arg_parser):
   arg_parser.add_argument('-v', '--verbose', help='make output more verbose',
                           action='count')

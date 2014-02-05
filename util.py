@@ -82,11 +82,19 @@ def create_archive(build_dir, format='zip', manifest=None):
   return File(archive_path)
 
 
+@action
+def copy_file(src, dest_path):
+  out = File(dest_path)
+  out.write(src.read(mode='b'), mode='b')
+  return out
+
+
 def copy_files(source_dir, dest_path, file_paths):
   copied_files = []
   for path in file_paths:
     rel_path = os.path.relpath(path, source_dir.path)
-    copied_files.append(File(rel_path).copy(os.path.join(dest_path, rel_path)))
+    copied_files.append(copy_file(File(rel_path),
+                                  os.path.join(dest_path, rel_path)))
   return copied_files
 
 
