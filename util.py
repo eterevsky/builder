@@ -135,10 +135,11 @@ def get_unused_filename(existing_files, filename):
       return new_name
 
 
-def get_build_path_with_version(source_dir, base_build_path, name, suffixes=[]):
+def get_build_path_with_version(
+    source_dir, base_build_path, name, default_branch='master', suffixes=[]):
   parts = [name]
   branch = get_git_branch(source_dir)
-  if branch != 'master':
+  if branch != default_branch:
     parts.append(branch)
   parts.append(get_version_from_git(source_dir))
   if is_git_modified(source_dir):
