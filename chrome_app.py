@@ -2,8 +2,8 @@ import json
 import os
 
 from . import action, File
+from . import dist
 from . import html
-from . import util
 
 
 @action
@@ -39,39 +39,31 @@ def set_background_js(manifest, build_path, js_files):
     manifest['background']['scripts'] = js_paths
 
 
-@action
-def build(source_dir, build_path, manifest, static_file_paths=None):
-  build_files = []
-  if static_file_paths is not None:
-    build_files.extend(util.copy_files(source_dir, build_path,
-                                       static_file_paths))
-
-  build_manifest = File(os.path.join(build_path, 'manifest.json'))
-  build_manifest.write(json.dumps(manifest))
-  build_files.append(build_manifest)
-
-  return util.delete_unlisted_files(build_path, build_files)
-
-
 class Builder(object):
-  def __init__(self, source_dir, build_path):
-    self.source_dir = source_dir
-    self.build_path = build_path
-    self.static_file_paths = set()
+  def __init__(self, source_dir, build_path, add_js=False):
+    self.dist_builder = dist.Builder(source_dir, build_path)
     self.manifest = parse_manifest(source_dir / 'manifest.json')
     if 'icons' in self.manifest:
-      self.add_static_files(self.manifest['icons'].values())
+      self.dist_builder.copy_files_same_path(self.manifest['icons'].values())
+    if add_js:
+      self.dist_builder.copy_files_same_path(self.get_background_js())
+
+  def set_version(self, version):
+    self.manifest['version'] = version
+
+  def copy_file(self, src, dest_path):
+    self.dist_builder.copy_file(src, dest_path)
 
   def add_static_files(self, paths):
-    self.static_file_paths |= set(paths)
+    self.dist_builder.copy_files_same_path(paths)
 
-  def add_static_file(self, path):
-    self.static_file_paths.add(path)
-
-  def add_html_file(self, html_path):
-    html_file = File(html_path)
-    self.add_static_file(html_path)
-    self.add_static_files(html.extract_local_js(html_file))
+  def add_html_file(self, html_file, path, add_js=False):
+    self.dist_builder.copy_file(html_file, path)
+    if add_js:
+      html_dir = os.path.dirname(path)
+      relative_js_paths = html.extract_local_js(html_file)
+      js_paths = map(lambda p: os.path.join(html_dir, p), relative_js_paths)
+      self.dist_builder.copy_files_same_path(js_paths)
 
   def get_background_js(self):
     if 'app' in self.manifest:
@@ -79,7 +71,11 @@ class Builder(object):
     else:
       return self.manifest['background']['scripts']
 
+  def replace_background_js(self, old_scripts, new_script):
+    background_js = self.get_background_js()
+    background_js[:] = filter(lambda p: p not in old_scripts, background_js)
+    background_js.append(new_script)
+
   def build(self):
-    return build(self.source_dir, self.build_path, self.manifest,
-                 self.static_file_paths)
-      
+    self.dist_builder.write_file('manifest.json', json.dumps(self.manifest))
+    return self.dist_builder.build()
